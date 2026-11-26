@@ -43,3 +43,11 @@ class OrganizationResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class MyOrganizationResponse(BaseModel):
+    id: int
+    name: str
+    role: str
+
+    model_config = ConfigDict(from_attributes=True)
+

@@ -1,11 +1,15 @@
 
+import enum
+
 from sqlalchemy import (
     Boolean,
+    Enum,
     Integer,
     String,
     Text,
     DateTime,
     ForeignKey,
+    UniqueConstraint,
     func
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -37,6 +41,81 @@ class Organization(Base):
         back_populates="organization",
         cascade="all, delete-orphan"
     )
+
+    memberships: Mapped[list["OrganizationMembership"]] = relationship(
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+
+
+class MemberRole(enum.Enum):
+    OWNER = "owner"
+    ADMIN = "admin"
+    AGENT = "agent"
+    MEMBER = "member"
+
+
+# Higher index = more privilege. Used for role comparisons.
+ROLE_ORDER = {
+    MemberRole.OWNER: 3,
+    MemberRole.ADMIN: 2,
+    MemberRole.AGENT: 1,
+    MemberRole.MEMBER: 0,
+}
+
+
+class OrganizationMembership(Base):
+    __tablename__ = "organization_memberships"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
+
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id"),
+        nullable=False,
+        index=True
+    )
+
+    role: Mapped[MemberRole] = mapped_column(
+        Enum(MemberRole, native_enum=False, length=20),
+        nullable=False,
+        default=MemberRole.MEMBER
+    )
+
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "organization_id",
+            name="uq_membership_user_org"
+        ),
+    )
+
+    user: Mapped["User"] = relationship()
+    organization: Mapped["Organization"] = relationship(
+        back_populates="memberships"
+    )
+
+    @property
+    def email(self) -> str | None:
+        return self.user.email if self.user else None
+
+    @property
+    def full_name(self) -> str | None:
+        return self.user.full_name if self.user else None
 
 
 class FAQ(Base):

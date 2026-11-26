@@ -4,12 +4,16 @@ from sqlalchemy.orm import Session
 
 from app.database import engine, get_db
 from app import models
+from app.auth.dependencies import get_current_user
 from app.auth.router import router as auth_router
+from app.memberships.dependencies import get_organization_membership
+from app.memberships.router import router as memberships_router
 from app.schemas import (
     FAQCreate,
     FAQUpdate,
     FAQPatch,
     FAQResponse,
+    MyOrganizationResponse,
     OrganizationCreate,
     OrganizationResponse,
 )
@@ -27,6 +31,7 @@ app = FastAPI(
 # ==========================================
 
 app.include_router(auth_router)
+app.include_router(memberships_router)
 
 
 @app.get("/")
@@ -74,13 +79,25 @@ def database_health():
 )
 def create_organization(
     organization: OrganizationCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
     new_organization = models.Organization(
         name=organization.name
     )
 
     db.add(new_organization)
+    db.flush()
+
+    # The creator automatically becomes the organization owner.
+    db.add(
+        models.OrganizationMembership(
+            user_id=current_user.id,
+            organization_id=new_organization.id,
+            role=models.MemberRole.OWNER,
+        )
+    )
+
     db.commit()
     db.refresh(new_organization)
 
@@ -88,20 +105,30 @@ def create_organization(
 
 
 # GET ALL ORGANIZATIONS
-@app.get("/organizations")
+@app.get(
+    "/organizations",
+    response_model=list[MyOrganizationResponse],
+)
 def get_organizations(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
-    organizations = (
-        db.query(models.Organization)
-        .order_by(models.Organization.id)
+    memberships = (
+        db.query(models.OrganizationMembership)
+        .filter(
+            models.OrganizationMembership.user_id == current_user.id
+        )
         .all()
     )
 
-    return {
-        "total": len(organizations),
-        "data": organizations
-    }
+    return [
+        MyOrganizationResponse(
+            id=membership.organization.id,
+            name=membership.organization.name,
+            role=membership.role.value,
+        )
+        for membership in memberships
+    ]
 
 
 # GET SINGLE ORGANIZATION
@@ -111,7 +138,10 @@ def get_organizations(
 )
 def get_organization(
     organization_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    membership: models.OrganizationMembership = Depends(
+        get_organization_membership
+    )
 ):
     organization = db.get(
         models.Organization,
@@ -140,7 +170,10 @@ def get_organization(
 def create_organization_faq(
     organization_id: int,
     faq: FAQCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    membership: models.OrganizationMembership = Depends(
+        get_organization_membership
+    )
 ):
     organization = db.get(
         models.Organization,
@@ -172,7 +205,10 @@ def create_organization_faq(
 )
 def get_organization_faqs(
     organization_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    membership: models.OrganizationMembership = Depends(
+        get_organization_membership
+    )
 ):
     organization = db.get(
         models.Organization,
@@ -210,7 +246,10 @@ def get_organization_faqs(
 def get_organization_faq(
     organization_id: int,
     faq_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    membership: models.OrganizationMembership = Depends(
+        get_organization_membership
+    )
 ):
     faq = (
         db.query(models.FAQ)
@@ -239,7 +278,10 @@ def update_organization_faq(
     organization_id: int,
     faq_id: int,
     updated_faq: FAQUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    membership: models.OrganizationMembership = Depends(
+        get_organization_membership
+    )
 ):
     faq = (
         db.query(models.FAQ)
@@ -274,7 +316,10 @@ def patch_organization_faq(
     organization_id: int,
     faq_id: int,
     updated_data: FAQPatch,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    membership: models.OrganizationMembership = Depends(
+        get_organization_membership
+    )
 ):
     faq = (
         db.query(models.FAQ)
@@ -318,7 +363,10 @@ def patch_organization_faq(
 def delete_organization_faq(
     organization_id: int,
     faq_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    membership: models.OrganizationMembership = Depends(
+        get_organization_membership
+    )
 ):
     faq = (
         db.query(models.FAQ)
