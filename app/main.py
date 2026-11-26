@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import engine, get_db
 from app import models
+from app.auth.router import router as auth_router
 from app.schemas import (
     FAQCreate,
     FAQUpdate,
@@ -24,6 +25,9 @@ app = FastAPI(
 # ==========================================
 # BASIC ROUTES
 # ==========================================
+
+app.include_router(auth_router)
+
 
 @app.get("/")
 async def root():
