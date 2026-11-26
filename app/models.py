@@ -5,6 +5,7 @@ from sqlalchemy import (
     Boolean,
     Enum,
     Integer,
+    JSON,
     String,
     Text,
     DateTime,
@@ -43,6 +44,11 @@ class Organization(Base):
     )
 
     memberships: Mapped[list["OrganizationMembership"]] = relationship(
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+
+    chatbots: Mapped[list["Chatbot"]] = relationship(
         back_populates="organization",
         cascade="all, delete-orphan"
     )
@@ -116,6 +122,82 @@ class OrganizationMembership(Base):
     @property
     def full_name(self) -> str | None:
         return self.user.full_name if self.user else None
+
+
+class Chatbot(Base):
+    __tablename__ = "chatbots"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id"),
+        nullable=False,
+        index=True
+    )
+
+    name: Mapped[str] = mapped_column(
+        String(150),
+        nullable=False
+    )
+
+    # Public identifier embedded in the widget script tag.
+    # Random and unguessable — NOT an authentication secret.
+    public_widget_id: Mapped[str] = mapped_column(
+        String(64),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    welcome_message: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+
+    system_prompt: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
+
+    # Widget appearance/behavior config, e.g.
+    # {"primary_color": "#4f46e5", "position": "bottom-right"}
+    branding: Mapped[dict | None] = mapped_column(
+        JSON,
+        nullable=True
+    )
+
+    # Domains allowed to embed the widget, e.g. ["example.com"]
+    allowed_domains: Mapped[list | None] = mapped_column(
+        JSON,
+        nullable=True
+    )
+
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    organization: Mapped["Organization"] = relationship(
+        back_populates="chatbots"
+    )
 
 
 class FAQ(Base):
