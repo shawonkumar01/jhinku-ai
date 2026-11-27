@@ -24,6 +24,15 @@ class ConversationResponse(BaseModel):
     welcome_message: str | None
 
 
+class HandoffRequest(BaseModel):
+    customer_identifier: str = Field(min_length=1, max_length=255)
+
+
+class HandoffResponse(BaseModel):
+    status: str
+    message: str
+
+
 class SendMessageRequest(BaseModel):
     content: str = Field(min_length=1, max_length=4000)
     customer_identifier: str = Field(min_length=1, max_length=255)

@@ -7,10 +7,13 @@ from app.chat import service
 from app.chat.schemas import (
     ConversationResponse,
     CreateConversationRequest,
+    HandoffRequest,
+    HandoffResponse,
     MessageResponse,
     PublicChatbotResponse,
     SendMessageRequest,
 )
+from app.conversations import service as conv_service
 from app.core.ratelimit import rate_limit
 from app.database import get_db
 
@@ -90,6 +93,30 @@ def send_message(
 
     ai_message = service.send_message(db, conversation, data.content)
     return service.to_message_response(ai_message)
+
+
+@router.post(
+    "/conversations/{public_id}/handoff",
+    response_model=HandoffResponse,
+    dependencies=[Depends(_rate_limit_dep)],
+)
+def request_human(
+    public_id: str,
+    data: HandoffRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Customer asks for a human agent."""
+    conversation = service.get_conversation_or_404(
+        db, public_id, data.customer_identifier
+    )
+    service.validate_origin(conversation.chatbot, request)
+
+    conv_service.request_human(db, conversation)
+    return HandoffResponse(
+        status=conversation.status.value,
+        message="A human agent has been notified.",
+    )
 
 
 @router.get(

@@ -77,7 +77,12 @@
 
   panel.innerHTML =
     '<div id="jhinku-header" style="padding:14px 16px;color:#fff;' +
-    "background:" + primaryColor + ';font-weight:600;font-size:15px;">Chat</div>' +
+    "background:" + primaryColor + ';font-weight:600;font-size:15px;display:flex;' +
+    'justify-content:space-between;align-items:center;">' +
+    '<span id="jhinku-title">Chat</span>' +
+    '<button id="jhinku-handoff" type="button" style="border:none;' +
+    'background:rgba(255,255,255,.2);color:#fff;font-size:11px;' +
+    'padding:4px 10px;border-radius:12px;cursor:pointer;">Human</button></div>' +
     '<div id="jhinku-messages" style="flex:1;overflow-y:auto;padding:12px;' +
     'display:flex;flex-direction:column;gap:8px;background:#f8f9fa;"></div>' +
     '<div id="jhinku-typing" style="display:none;padding:0 16px 4px;' +
@@ -99,6 +104,8 @@
   var inputEl = panel.querySelector("#jhinku-input");
   var typingEl = panel.querySelector("#jhinku-typing");
   var headerEl = panel.querySelector("#jhinku-header");
+  var titleEl = panel.querySelector("#jhinku-title");
+  var handoffEl = panel.querySelector("#jhinku-handoff");
 
   // ---------- Helpers ----------
   function api(path, options) {
@@ -234,6 +241,28 @@
     if (e.key === "Escape" && state.open) closePanel();
   });
 
+  // "Human" button -> request handoff to a live agent.
+  handoffEl.addEventListener("click", function () {
+    if (!state.conversationId) return;
+    handoffEl.disabled = true;
+    handoffEl.textContent = "…";
+    api("/public/conversations/" + state.conversationId + "/handoff", {
+      method: "POST",
+      body: JSON.stringify({ customer_identifier: customerId }),
+    })
+      .then(function () {
+        bubble(
+          "I've notified our team — a human agent will join shortly.",
+          "ai"
+        );
+        handoffEl.textContent = "Requested";
+      })
+      .catch(errorBubble)
+      .finally(function () {
+        handoffEl.disabled = false;
+      });
+  });
+
   // ---------- Init: fetch public config ----------
   api("/public/chatbots/" + chatbotId)
     .then(function (config) {
@@ -245,7 +274,7 @@
         panel.querySelector("#jhinku-form button").style.background =
           primaryColor;
       }
-      if (config.name) headerEl.textContent = config.name;
+      if (config.name) titleEl.textContent = config.name;
       if (config.welcome_message) {
         // Shown on first open if no history exists.
       }

@@ -472,6 +472,13 @@ class Message(Base):
         nullable=True
     )
 
+    # Internal notes are visible to agents only, never to customers.
+    is_internal: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

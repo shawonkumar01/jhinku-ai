@@ -131,9 +131,13 @@ def send_message(
 def list_messages(
     db: Session, conversation: models.Conversation
 ) -> list[models.Message]:
+    # Internal agent notes must NEVER be visible to the customer.
     return (
         db.query(models.Message)
-        .filter(models.Message.conversation_id == conversation.id)
+        .filter(
+            models.Message.conversation_id == conversation.id,
+            models.Message.is_internal.is_(False),
+        )
         .order_by(models.Message.id)
         .all()
     )
