@@ -7,6 +7,7 @@ from app import models
 from app.auth.dependencies import get_current_user
 from app.auth.router import router as auth_router
 from app.memberships.dependencies import get_organization_membership
+from app.chat.router import router as chat_router
 from app.chatbots.router import router as chatbots_router
 from app.knowledge.router import router as knowledge_router
 from app.memberships.router import router as memberships_router
@@ -36,6 +37,7 @@ app.include_router(auth_router)
 app.include_router(memberships_router)
 app.include_router(chatbots_router)
 app.include_router(knowledge_router)
+app.include_router(chat_router)
 
 
 @app.get("/")

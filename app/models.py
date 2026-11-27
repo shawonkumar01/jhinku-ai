@@ -357,6 +357,132 @@ class KnowledgeChunk(Base):
     )
 
 
+class ConversationStatus(enum.Enum):
+    ACTIVE = "active"
+    WAITING_HUMAN = "waiting_human"
+    HUMAN = "human"
+    CLOSED = "closed"
+
+
+class SenderType(enum.Enum):
+    CUSTOMER = "customer"
+    AI = "ai"
+    AGENT = "agent"
+    SYSTEM = "system"
+
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    # Unguessable public identifier used in widget API URLs.
+    public_id: Mapped[str] = mapped_column(
+        String(64),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id"),
+        nullable=False,
+        index=True
+    )
+
+    chatbot_id: Mapped[int] = mapped_column(
+        ForeignKey("chatbots.id"),
+        nullable=False,
+        index=True
+    )
+
+    # Identifier the widget generates for the visitor's browser.
+    customer_identifier: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        index=True
+    )
+
+    status: Mapped[ConversationStatus] = mapped_column(
+        Enum(ConversationStatus, native_enum=False, length=20),
+        default=ConversationStatus.ACTIVE,
+        nullable=False
+    )
+
+    assigned_agent_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=True
+    )
+
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    organization: Mapped["Organization"] = relationship()
+    chatbot: Mapped["Chatbot"] = relationship()
+    messages: Mapped[list["Message"]] = relationship(
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="Message.id",
+    )
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    conversation_id: Mapped[int] = mapped_column(
+        ForeignKey("conversations.id"),
+        nullable=False,
+        index=True
+    )
+
+    sender_type: Mapped[SenderType] = mapped_column(
+        Enum(SenderType, native_enum=False, length=20),
+        nullable=False
+    )
+
+    content: Mapped[str] = mapped_column(
+        Text,
+        nullable=False
+    )
+
+    # Extra data: sources, handoff flags, etc.
+    metadata_: Mapped[dict | None] = mapped_column(
+        "metadata",
+        JSON,
+        nullable=True
+    )
+
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+
+    conversation: Mapped["Conversation"] = relationship(
+        back_populates="messages"
+    )
+
+
 class FAQ(Base):
     __tablename__ = "faqs"
 
