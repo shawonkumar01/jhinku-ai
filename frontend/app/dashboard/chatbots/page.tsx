@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useOrg } from "@/components/OrgContext";
 import { Badge, Button, Card, EmptyState, Input, PageHeader } from "@/components/ui";
+import { TestChat } from "@/components/TestChat";
 import type { Chatbot } from "@/lib/types";
 
 const API_URL =
@@ -18,6 +19,7 @@ export default function ChatbotsPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState<number | null>(null);
+  const [testing, setTesting] = useState<Chatbot | null>(null);
 
   const load = useCallback(() => {
     if (!orgId) return;
@@ -134,10 +136,38 @@ export default function ChatbotsPage() {
                   </Button>
                 </div>
               </div>
+
+              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                <span className="text-xs text-slate-400">
+                  Chatbot ID: {b.id}
+                </span>
+                <Button
+                  variant="secondary"
+                  onClick={() => setTesting(b)}
+                  className="px-3.5 py-1.5 text-xs"
+                >
+                  <svg
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"
+                    />
+                  </svg>
+                  Test chat
+                </Button>
+              </div>
             </Card>
           ))}
         </div>
       )}
+
+      {testing && <TestChat bot={testing} onClose={() => setTesting(null)} />}
     </div>
   );
 }
