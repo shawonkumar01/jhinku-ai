@@ -13,7 +13,19 @@
   "use strict";
 
   // ---------- Bootstrap ----------
+  // document.currentScript is null for dynamically-inserted scripts
+  // (e.g. loaded via createElement), so fall back to scanning for
+  // our own <script> tag.
   var scriptEl = document.currentScript;
+  if (!scriptEl) {
+    var scripts = document.getElementsByTagName("script");
+    for (var i = scripts.length - 1; i >= 0; i--) {
+      if (scripts[i].src && scripts[i].src.indexOf("widget.js") !== -1) {
+        scriptEl = scripts[i];
+        break;
+      }
+    }
+  }
   if (!scriptEl) return;
   var chatbotId = scriptEl.getAttribute("data-chatbot-id");
   if (!chatbotId) {
