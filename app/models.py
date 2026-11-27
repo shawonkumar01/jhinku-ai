@@ -53,6 +53,11 @@ class Organization(Base):
         cascade="all, delete-orphan"
     )
 
+    knowledge_sources: Mapped[list["KnowledgeSource"]] = relationship(
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+
 
 class MemberRole(enum.Enum):
     OWNER = "owner"
@@ -197,6 +202,149 @@ class Chatbot(Base):
 
     organization: Mapped["Organization"] = relationship(
         back_populates="chatbots"
+    )
+
+
+class ProcessingStatus(enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class KnowledgeSource(Base):
+    __tablename__ = "knowledge_sources"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id"),
+        nullable=False,
+        index=True
+    )
+
+    # Optional: scope the source to a single chatbot.
+    # NULL means it is available to all chatbots in the org.
+    chatbot_id: Mapped[int | None] = mapped_column(
+        ForeignKey("chatbots.id"),
+        nullable=True,
+        index=True
+    )
+
+    title: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+
+    original_filename: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+
+    file_path: Mapped[str] = mapped_column(
+        String(500),
+        nullable=False
+    )
+
+    file_size: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False
+    )
+
+    content_type: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True
+    )
+
+    processing_status: Mapped[ProcessingStatus] = mapped_column(
+        Enum(ProcessingStatus, native_enum=False, length=20),
+        default=ProcessingStatus.PENDING,
+        nullable=False
+    )
+
+    chunk_count: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        nullable=False
+    )
+
+    error_message: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    organization: Mapped["Organization"] = relationship(
+        back_populates="knowledge_sources"
+    )
+    chatbot: Mapped["Chatbot"] = relationship()
+    chunks: Mapped[list["KnowledgeChunk"]] = relationship(
+        back_populates="source",
+        cascade="all, delete-orphan"
+    )
+
+
+class KnowledgeChunk(Base):
+    __tablename__ = "knowledge_chunks"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id"),
+        nullable=False,
+        index=True
+    )
+
+    chatbot_id: Mapped[int | None] = mapped_column(
+        ForeignKey("chatbots.id"),
+        nullable=True,
+        index=True
+    )
+
+    knowledge_source_id: Mapped[int] = mapped_column(
+        ForeignKey("knowledge_sources.id"),
+        nullable=False,
+        index=True
+    )
+
+    content: Mapped[str] = mapped_column(
+        Text,
+        nullable=False
+    )
+
+    chunk_index: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False
+    )
+
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+
+    source: Mapped["KnowledgeSource"] = relationship(
+        back_populates="chunks"
     )
 
 

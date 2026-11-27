@@ -16,3 +16,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(
 REFRESH_TOKEN_EXPIRE_DAYS = int(
     os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7")
 )
+
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
+MAX_UPLOAD_SIZE_MB = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10"))
