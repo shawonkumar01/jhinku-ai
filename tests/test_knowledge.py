@@ -15,7 +15,7 @@ def upload(client, token, org_id, filename="faq.txt",
     if chatbot_id is not None:
         params["chatbot_id"] = chatbot_id
     return client.post(
-        f"/organizations/{org_id}/knowledge-sources",
+        f"/api/v1/organizations/{org_id}/knowledge-sources",
         files={"file": (filename, content, "text/plain")},
         params=params,
         headers=auth(token),
@@ -42,7 +42,7 @@ class TestUploadAndProcessing:
         service.process_source(body["id"], db=db_session)
 
         fetched = client.get(
-            f"/organizations/{org_id}/knowledge-sources/{body['id']}",
+            f"/api/v1/organizations/{org_id}/knowledge-sources/{body['id']}",
             headers=auth(token),
         ).json()
         assert fetched["processing_status"] == "completed"
@@ -55,7 +55,7 @@ class TestUploadAndProcessing:
         upload(client, token, org_id)
 
         response = client.get(
-            f"/organizations/{org_id}/knowledge-sources",
+            f"/api/v1/organizations/{org_id}/knowledge-sources",
             headers=auth(token),
         )
         assert response.status_code == 200
@@ -68,7 +68,7 @@ class TestUploadAndProcessing:
         source = upload(client, token, org_id).json()
 
         response = client.get(
-            f"/organizations/{org_id}/knowledge-sources/{source['id']}",
+            f"/api/v1/organizations/{org_id}/knowledge-sources/{source['id']}",
             headers=auth(token),
         )
         assert response.status_code == 200
@@ -81,13 +81,13 @@ class TestUploadAndProcessing:
         source = upload(client, token, org_id).json()
 
         response = client.delete(
-            f"/organizations/{org_id}/knowledge-sources/{source['id']}",
+            f"/api/v1/organizations/{org_id}/knowledge-sources/{source['id']}",
             headers=auth(token),
         )
         assert response.status_code == 204
 
         response = client.get(
-            f"/organizations/{org_id}/knowledge-sources/{source['id']}",
+            f"/api/v1/organizations/{org_id}/knowledge-sources/{source['id']}",
             headers=auth(token),
         )
         assert response.status_code == 404
@@ -133,7 +133,7 @@ class TestUploadValidation:
         token = login(client, "a@example.com")
         org_id = create_org(client, token)
         bot = client.post(
-            f"/organizations/{org_id}/chatbots",
+            f"/api/v1/organizations/{org_id}/chatbots",
             json={"name": "Bot"},
             headers=auth(token),
         ).json()
@@ -156,7 +156,7 @@ class TestKnowledgeTenantIsolation:
         outsider = login(client, "outsider@example.com")
 
         response = client.get(
-            f"/organizations/{org_id}/knowledge-sources",
+            f"/api/v1/organizations/{org_id}/knowledge-sources",
             headers=auth(outsider),
         )
         assert response.status_code == 404
@@ -175,7 +175,7 @@ class TestKnowledgeTenantIsolation:
         org_b = create_org(client, token_b, "Org B")
 
         response = client.get(
-            f"/organizations/{org_b}/knowledge-sources",
+            f"/api/v1/organizations/{org_b}/knowledge-sources",
             headers=auth(token_b),
         )
         assert response.json() == []

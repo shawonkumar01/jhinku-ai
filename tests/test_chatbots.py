@@ -9,7 +9,7 @@ from tests.test_memberships import (
 
 def make_chatbot(client, token, org_id, name="Support Bot"):
     return client.post(
-        f"/organizations/{org_id}/chatbots",
+        f"/api/v1/organizations/{org_id}/chatbots",
         json={"name": name},
         headers=auth(token),
     )
@@ -46,7 +46,7 @@ class TestChatbotCrud:
         make_chatbot(client, token, org_id)
 
         response = client.get(
-            f"/organizations/{org_id}/chatbots", headers=auth(token)
+            f"/api/v1/organizations/{org_id}/chatbots", headers=auth(token)
         )
         assert response.status_code == 200
         assert len(response.json()) == 1
@@ -58,7 +58,7 @@ class TestChatbotCrud:
         bot = make_chatbot(client, token, org_id).json()
 
         response = client.patch(
-            f"/organizations/{org_id}/chatbots/{bot['id']}",
+            f"/api/v1/organizations/{org_id}/chatbots/{bot['id']}",
             json={
                 "welcome_message": "Hi! How can I help?",
                 "allowed_domains": ["example.com"],
@@ -81,7 +81,7 @@ class TestChatbotCrud:
         bot = make_chatbot(client, token, org_id).json()
 
         response = client.patch(
-            f"/organizations/{org_id}/chatbots/{bot['id']}",
+            f"/api/v1/organizations/{org_id}/chatbots/{bot['id']}",
             json={"is_active": False},
             headers=auth(token),
         )
@@ -94,13 +94,13 @@ class TestChatbotCrud:
         bot = make_chatbot(client, token, org_id).json()
 
         response = client.delete(
-            f"/organizations/{org_id}/chatbots/{bot['id']}",
+            f"/api/v1/organizations/{org_id}/chatbots/{bot['id']}",
             headers=auth(token),
         )
         assert response.status_code == 204
 
         response = client.get(
-            f"/organizations/{org_id}/chatbots/{bot['id']}",
+            f"/api/v1/organizations/{org_id}/chatbots/{bot['id']}",
             headers=auth(token),
         )
         assert response.status_code == 404
@@ -111,7 +111,7 @@ class TestChatbotCrud:
         org_id = create_org(client, token)
 
         response = client.get(
-            f"/organizations/{org_id}/chatbots/999", headers=auth(token)
+            f"/api/v1/organizations/{org_id}/chatbots/999", headers=auth(token)
         )
         assert response.status_code == 404
 
@@ -127,7 +127,7 @@ class TestChatbotTenantIsolation:
         outsider = login(client, "outsider@example.com")
 
         response = client.get(
-            f"/organizations/{org_id}/chatbots", headers=auth(outsider)
+            f"/api/v1/organizations/{org_id}/chatbots", headers=auth(outsider)
         )
         assert response.status_code == 404
 
@@ -146,17 +146,17 @@ class TestChatbotTenantIsolation:
 
         # Bot id from org A requested under org B -> 404.
         response = client.get(
-            f"/organizations/{org_b}/chatbots/{bot['id']}",
+            f"/api/v1/organizations/{org_b}/chatbots/{bot['id']}",
             headers=auth(token_b),
         )
         assert response.status_code == 404
 
         # Org B cannot see org A's bot even by listing.
         response = client.get(
-            f"/organizations/{org_b}/chatbots", headers=auth(token_b)
+            f"/api/v1/organizations/{org_b}/chatbots", headers=auth(token_b)
         )
         assert response.json() == []
 
     def test_requires_auth(self, client):
-        response = client.get("/organizations/1/chatbots")
+        response = client.get("/api/v1/organizations/1/chatbots")
         assert response.status_code == 401

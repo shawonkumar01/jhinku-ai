@@ -8,7 +8,7 @@ from app.core.config import JWT_ALGORITHM, SECRET_KEY
 
 def register(client, email="user@example.com", password="password123"):
     return client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": email,
             "password": password,
@@ -19,7 +19,7 @@ def register(client, email="user@example.com", password="password123"):
 
 def login(client, email="user@example.com", password="password123"):
     return client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={"email": email, "password": password},
     )
 
@@ -73,7 +73,7 @@ def test_login_unknown_email(client):
 
 
 def test_me_requires_auth(client):
-    response = client.get("/auth/me")
+    response = client.get("/api/v1/auth/me")
     assert response.status_code == 401
 
 
@@ -81,7 +81,7 @@ def test_me_with_valid_token(client):
     register(client)
     tokens = login(client).json()
     response = client.get(
-        "/auth/me",
+        "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {tokens['access_token']}"},
     )
     assert response.status_code == 200
@@ -102,7 +102,7 @@ def test_me_with_expired_access_token(client):
         algorithm=JWT_ALGORITHM,
     )
     response = client.get(
-        "/auth/me",
+        "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {expired}"},
     )
     assert response.status_code == 401
@@ -110,7 +110,7 @@ def test_me_with_expired_access_token(client):
 
 def test_me_with_invalid_token(client):
     response = client.get(
-        "/auth/me",
+        "/api/v1/auth/me",
         headers={"Authorization": "Bearer garbage"},
     )
     assert response.status_code == 401
@@ -122,7 +122,7 @@ def test_refresh_rotates_token(client):
     old_refresh = tokens["refresh_token"]
 
     response = client.post(
-        "/auth/refresh", json={"refresh_token": old_refresh}
+        "/api/v1/auth/refresh", json={"refresh_token": old_refresh}
     )
     assert response.status_code == 200
     new_tokens = response.json()
@@ -130,14 +130,14 @@ def test_refresh_rotates_token(client):
 
     # The old refresh token must now be revoked.
     reuse = client.post(
-        "/auth/refresh", json={"refresh_token": old_refresh}
+        "/api/v1/auth/refresh", json={"refresh_token": old_refresh}
     )
     assert reuse.status_code == 401
 
 
 def test_refresh_invalid_token(client):
     response = client.post(
-        "/auth/refresh", json={"refresh_token": "not-a-real-token"}
+        "/api/v1/auth/refresh", json={"refresh_token": "not-a-real-token"}
     )
     assert response.status_code == 401
 
@@ -148,11 +148,11 @@ def test_logout_revokes_refresh_token(client):
     refresh = tokens["refresh_token"]
 
     response = client.post(
-        "/auth/logout", json={"refresh_token": refresh}
+        "/api/v1/auth/logout", json={"refresh_token": refresh}
     )
     assert response.status_code == 204
 
     reuse = client.post(
-        "/auth/refresh", json={"refresh_token": refresh}
+        "/api/v1/auth/refresh", json={"refresh_token": refresh}
     )
     assert reuse.status_code == 401

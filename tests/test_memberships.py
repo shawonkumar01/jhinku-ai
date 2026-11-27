@@ -4,14 +4,14 @@ import pytest
 
 def register(client, email, password="password123"):
     return client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={"email": email, "password": password},
     )
 
 
 def login(client, email, password="password123"):
     response = client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={"email": email, "password": password},
     )
     assert response.status_code == 200
@@ -24,7 +24,7 @@ def auth(token):
 
 def create_org(client, token, name="Acme Corp"):
     response = client.post(
-        "/organizations", json={"name": name}, headers=auth(token)
+        "/api/v1/organizations", json={"name": name}, headers=auth(token)
     )
     assert response.status_code == 201
     return response.json()["id"]
@@ -47,13 +47,13 @@ def member(client):
 class TestOrganizationAccess:
     def test_create_org_requires_auth(self, client):
         response = client.post(
-            "/organizations", json={"name": "No Auth Org"}
+            "/api/v1/organizations", json={"name": "No Auth Org"}
         )
         assert response.status_code == 401
 
     def test_creator_becomes_owner(self, client, owner):
         token, org_id = owner
-        orgs = client.get("/organizations", headers=auth(token))
+        orgs = client.get("/api/v1/organizations", headers=auth(token))
         assert orgs.status_code == 200
         data = orgs.json()
         assert len(data) == 1
@@ -63,16 +63,16 @@ class TestOrganizationAccess:
     def test_list_orgs_only_shows_member_orgs(self, client, owner, member):
         token, _ = owner
         # Member has no orgs yet.
-        response = client.get("/organizations", headers=auth(member))
+        response = client.get("/api/v1/organizations", headers=auth(member))
         assert response.json() == []
 
         # Owner's org is invisible to a non-member.
         create_org(client, member, "Member Org")
         member_orgs = client.get(
-            "/organizations", headers=auth(member)
+            "/api/v1/organizations", headers=auth(member)
         ).json()
         owner_orgs = client.get(
-            "/organizations", headers=auth(token)
+            "/api/v1/organizations", headers=auth(token)
         ).json()
         assert len(member_orgs) == 1
         assert len(owner_orgs) == 1
@@ -81,7 +81,7 @@ class TestOrganizationAccess:
     def test_non_member_gets_404_on_org(self, client, owner, member):
         _, org_id = owner
         response = client.get(
-            f"/organizations/{org_id}", headers=auth(member)
+            f"/api/v1/organizations/{org_id}", headers=auth(member)
         )
         assert response.status_code == 404
 
@@ -91,7 +91,7 @@ class TestMemberManagement:
         token, org_id = owner
 
         response = client.post(
-            f"/organizations/{org_id}/members",
+            f"/api/v1/organizations/{org_id}/members",
             json={"email": "member@example.com", "role": "member"},
             headers=auth(token),
         )
@@ -99,7 +99,7 @@ class TestMemberManagement:
         assert response.json()["role"] == "member"
 
         members = client.get(
-            f"/organizations/{org_id}/members", headers=auth(token)
+            f"/api/v1/organizations/{org_id}/members", headers=auth(token)
         ).json()
         assert len(members) == 2
         roles = {m["email"]: m["role"] for m in members}
@@ -109,14 +109,14 @@ class TestMemberManagement:
     def test_member_cannot_add_members(self, client, owner, member):
         owner_token, org_id = owner
         client.post(
-            f"/organizations/{org_id}/members",
+            f"/api/v1/organizations/{org_id}/members",
             json={"email": "member@example.com"},
             headers=auth(owner_token),
         )
 
         register(client, "third@example.com")
         response = client.post(
-            f"/organizations/{org_id}/members",
+            f"/api/v1/organizations/{org_id}/members",
             json={"email": "third@example.com"},
             headers=auth(member),
         )
@@ -125,7 +125,7 @@ class TestMemberManagement:
     def test_add_unknown_email_fails(self, client, owner):
         token, org_id = owner
         response = client.post(
-            f"/organizations/{org_id}/members",
+            f"/api/v1/organizations/{org_id}/members",
             json={"email": "ghost@example.com"},
             headers=auth(token),
         )
@@ -134,14 +134,14 @@ class TestMemberManagement:
     def test_duplicate_member_rejected(self, client, owner, member):
         token, org_id = owner
         payload = {"email": "member@example.com"}
-        url = f"/organizations/{org_id}/members"
+        url = f"/api/v1/organizations/{org_id}/members"
         assert client.post(url, json=payload, headers=auth(token)).status_code == 201
         assert client.post(url, json=payload, headers=auth(token)).status_code == 409
 
     def test_cannot_invite_owner_role(self, client, owner):
         token, org_id = owner
         response = client.post(
-            f"/organizations/{org_id}/members",
+            f"/api/v1/organizations/{org_id}/members",
             json={"email": "member@example.com", "role": "owner"},
             headers=auth(token),
         )
@@ -150,17 +150,17 @@ class TestMemberManagement:
     def test_change_member_role(self, client, owner, member):
         token, org_id = owner
         client.post(
-            f"/organizations/{org_id}/members",
+            f"/api/v1/organizations/{org_id}/members",
             json={"email": "member@example.com"},
             headers=auth(token),
         )
         members = client.get(
-            f"/organizations/{org_id}/members", headers=auth(token)
+            f"/api/v1/organizations/{org_id}/members", headers=auth(token)
         ).json()
         member_id = next(m["id"] for m in members if m["email"] == "member@example.com")
 
         response = client.patch(
-            f"/organizations/{org_id}/members/{member_id}",
+            f"/api/v1/organizations/{org_id}/members/{member_id}",
             json={"role": "admin"},
             headers=auth(token),
         )
@@ -171,12 +171,12 @@ class TestMemberManagement:
         owner_token, org_id = owner
         # Promote member to admin.
         client.post(
-            f"/organizations/{org_id}/members",
+            f"/api/v1/organizations/{org_id}/members",
             json={"email": "member@example.com", "role": "admin"},
             headers=auth(owner_token),
         )
         members = client.get(
-            f"/organizations/{org_id}/members", headers=auth(owner_token)
+            f"/api/v1/organizations/{org_id}/members", headers=auth(owner_token)
         ).json()
         owner_member_id = next(
             m["id"] for m in members if m["role"] == "owner"
@@ -184,7 +184,7 @@ class TestMemberManagement:
 
         # Admin tries to demote the owner -> 403.
         response = client.patch(
-            f"/organizations/{org_id}/members/{owner_member_id}",
+            f"/api/v1/organizations/{org_id}/members/{owner_member_id}",
             json={"role": "member"},
             headers=auth(member),
         )
@@ -193,12 +193,12 @@ class TestMemberManagement:
     def test_cannot_remove_last_owner(self, client, owner):
         token, org_id = owner
         members = client.get(
-            f"/organizations/{org_id}/members", headers=auth(token)
+            f"/api/v1/organizations/{org_id}/members", headers=auth(token)
         ).json()
         owner_id = members[0]["id"]
 
         response = client.delete(
-            f"/organizations/{org_id}/members/{owner_id}",
+            f"/api/v1/organizations/{org_id}/members/{owner_id}",
             headers=auth(token),
         )
         assert response.status_code == 400
@@ -206,24 +206,24 @@ class TestMemberManagement:
     def test_remove_member(self, client, owner, member):
         token, org_id = owner
         client.post(
-            f"/organizations/{org_id}/members",
+            f"/api/v1/organizations/{org_id}/members",
             json={"email": "member@example.com"},
             headers=auth(token),
         )
         members = client.get(
-            f"/organizations/{org_id}/members", headers=auth(token)
+            f"/api/v1/organizations/{org_id}/members", headers=auth(token)
         ).json()
         member_id = next(m["id"] for m in members if m["email"] == "member@example.com")
 
         response = client.delete(
-            f"/organizations/{org_id}/members/{member_id}",
+            f"/api/v1/organizations/{org_id}/members/{member_id}",
             headers=auth(token),
         )
         assert response.status_code == 204
 
         # Removed member loses access.
         response = client.get(
-            f"/organizations/{org_id}", headers=auth(member)
+            f"/api/v1/organizations/{org_id}", headers=auth(member)
         )
         assert response.status_code == 404
 
@@ -231,7 +231,7 @@ class TestMemberManagement:
 class TestFaqTenantIsolation:
     def _add_faq(self, client, token, org_id):
         return client.post(
-            f"/organizations/{org_id}/faqs",
+            f"/api/v1/organizations/{org_id}/faqs",
             json={"question": "What is Jhinku?", "answer": "An AI support platform."},
             headers=auth(token),
         )
@@ -239,7 +239,7 @@ class TestFaqTenantIsolation:
     def test_member_can_crud_faqs(self, client, owner, member):
         owner_token, org_id = owner
         client.post(
-            f"/organizations/{org_id}/members",
+            f"/api/v1/organizations/{org_id}/members",
             json={"email": "member@example.com"},
             headers=auth(owner_token),
         )
@@ -248,14 +248,14 @@ class TestFaqTenantIsolation:
         assert response.status_code == 201
 
         faqs = client.get(
-            f"/organizations/{org_id}/faqs", headers=auth(member)
+            f"/api/v1/organizations/{org_id}/faqs", headers=auth(member)
         ).json()
         assert faqs["total"] == 1
 
     def test_non_member_cannot_access_faqs(self, client, owner, member):
         _, org_id = owner
         response = client.get(
-            f"/organizations/{org_id}/faqs", headers=auth(member)
+            f"/api/v1/organizations/{org_id}/faqs", headers=auth(member)
         )
         assert response.status_code == 404
 
@@ -264,5 +264,5 @@ class TestFaqTenantIsolation:
 
     def test_faqs_require_auth(self, client, owner):
         _, org_id = owner
-        response = client.get(f"/organizations/{org_id}/faqs")
+        response = client.get(f"/api/v1/organizations/{org_id}/faqs")
         assert response.status_code == 401

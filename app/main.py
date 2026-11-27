@@ -33,11 +33,14 @@ app = FastAPI(
 # BASIC ROUTES
 # ==========================================
 
-app.include_router(auth_router)
-app.include_router(memberships_router)
-app.include_router(chatbots_router)
-app.include_router(knowledge_router)
-app.include_router(chat_router)
+for router in (
+    auth_router,
+    memberships_router,
+    chatbots_router,
+    knowledge_router,
+    chat_router,
+):
+    app.include_router(router, prefix="/api/v1")
 
 
 @app.get("/")
@@ -59,7 +62,7 @@ async def health():
 
 # CREATE ORGANIZATION
 @app.post(
-    "/organizations",
+    "/api/v1/organizations",
     response_model=OrganizationResponse,
     status_code=status.HTTP_201_CREATED
 )
@@ -92,7 +95,7 @@ def create_organization(
 
 # GET ALL ORGANIZATIONS
 @app.get(
-    "/organizations",
+    "/api/v1/organizations",
     response_model=list[MyOrganizationResponse],
 )
 def get_organizations(
@@ -119,7 +122,7 @@ def get_organizations(
 
 # GET SINGLE ORGANIZATION
 @app.get(
-    "/organizations/{organization_id}",
+    "/api/v1/organizations/{organization_id}",
     response_model=OrganizationResponse
 )
 def get_organization(
@@ -149,7 +152,7 @@ def get_organization(
 
 # CREATE FAQ UNDER AN ORGANIZATION
 @app.post(
-    "/organizations/{organization_id}/faqs",
+    "/api/v1/organizations/{organization_id}/faqs",
     response_model=FAQResponse,
     status_code=status.HTTP_201_CREATED
 )
@@ -187,7 +190,7 @@ def create_organization_faq(
 
 # GET ALL FAQS OF AN ORGANIZATION
 @app.get(
-    "/organizations/{organization_id}/faqs"
+    "/api/v1/organizations/{organization_id}/faqs"
 )
 def get_organization_faqs(
     organization_id: int,
@@ -226,7 +229,7 @@ def get_organization_faqs(
 
 # GET SINGLE FAQ
 @app.get(
-    "/organizations/{organization_id}/faqs/{faq_id}",
+    "/api/v1/organizations/{organization_id}/faqs/{faq_id}",
     response_model=FAQResponse
 )
 def get_organization_faq(
@@ -257,7 +260,7 @@ def get_organization_faq(
 
 # PUT - FULL FAQ UPDATE
 @app.put(
-    "/organizations/{organization_id}/faqs/{faq_id}",
+    "/api/v1/organizations/{organization_id}/faqs/{faq_id}",
     response_model=FAQResponse
 )
 def update_organization_faq(
@@ -295,7 +298,7 @@ def update_organization_faq(
 
 # PATCH - PARTIAL FAQ UPDATE
 @app.patch(
-    "/organizations/{organization_id}/faqs/{faq_id}",
+    "/api/v1/organizations/{organization_id}/faqs/{faq_id}",
     response_model=FAQResponse
 )
 def patch_organization_faq(
@@ -344,7 +347,7 @@ def patch_organization_faq(
 
 # DELETE FAQ
 @app.delete(
-    "/organizations/{organization_id}/faqs/{faq_id}"
+    "/api/v1/organizations/{organization_id}/faqs/{faq_id}"
 )
 def delete_organization_faq(
     organization_id: int,
