@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jhinku AI — Widget Demo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 60px auto; padding: 0 20px; color: #333; }
+    code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; }
+    input { padding: 8px; width: 320px; font-family: monospace; }
+    button { padding: 8px 16px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Jhinku AI Widget Demo</h1>
+  <p>Paste your chatbot's <code>public_widget_id</code> and load the widget:</p>
+  <p>
+    <input id="wid" placeholder="public_widget_id" />
+    <button onclick="loadWidget()">Load Widget</button>
+  </p>
+  <p id="status"></p>
+
+  <script>
+    function loadWidget() {
+      var id = document.getElementById("wid").value.trim();
+      if (!id) return;
+      document.getElementById("status").textContent = "Loading widget…";
+      var s = document.createElement("script");
+      s.src = "/widget.js";
+      s.setAttribute("data-chatbot-id", id);
+      s.async = true;
+      s.onload = function () {
+        document.getElementById("status").textContent = "Widget loaded — look bottom-right.";
+      };
+      s.onerror = function () {
+        document.getElementById("status").textContent = "Failed to load widget.js";
+      };
+      document.body.appendChild(s);
+    }
+
+    // Auto-load if ?chatbot=ID is in the URL.
+    var params = new URLSearchParams(location.search);
+    var auto = params.get("chatbot");
+    if (auto) {
+      document.getElementById("wid").value = auto;
+      loadWidget();
+    }
+  </script>
+</body>
+</html>
