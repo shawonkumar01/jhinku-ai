@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { useOrg } from "@/components/OrgContext";
+import { Badge, Button, Card, EmptyState, Input, PageHeader } from "@/components/ui";
 
 export default function OrganizationsPage() {
   const { orgs, orgId, refreshOrgs } = useOrg();
@@ -29,51 +30,61 @@ export default function OrganizationsPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <h1 className="text-xl font-bold">Organizations</h1>
+    <div className="max-w-4xl">
+      <PageHeader
+        title="Organizations"
+        description="Each organization is a separate workspace with its own chatbots, knowledge and team."
+      />
 
-      <form
-        onSubmit={create}
-        className="flex gap-2 rounded-xl border bg-white p-4"
-      >
-        <input
-          required
-          minLength={2}
-          placeholder="New organization name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="flex-1 rounded-lg border px-3 py-2 text-sm"
-        />
-        <button
-          disabled={busy}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-        >
-          Create
-        </button>
-      </form>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      <div className="space-y-2">
-        {orgs.length === 0 && (
-          <p className="text-sm text-gray-500">
-            No organizations yet — create one above. You become its owner.
-          </p>
-        )}
-        {orgs.map((o) => (
-          <div
-            key={o.id}
-            className={`flex items-center justify-between rounded-xl border bg-white p-4 ${
-              o.id === orgId ? "border-indigo-400 ring-1 ring-indigo-200" : ""
-            }`}
-          >
-            <div>
-              <p className="font-medium">{o.name}</p>
-              <p className="text-xs text-gray-500">Role: {o.role}</p>
-            </div>
-            <span className="text-xs text-gray-400">ID: {o.id}</span>
+      <Card className="mb-6 p-5">
+        <form onSubmit={create} className="flex items-end gap-3">
+          <div className="flex-1">
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              New organization
+            </label>
+            <Input
+              required
+              minLength={2}
+              placeholder="e.g. Acme Corp"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
-        ))}
-      </div>
+          <Button type="submit" disabled={busy}>
+            {busy ? "Creating…" : "Create"}
+          </Button>
+        </form>
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      </Card>
+
+      {orgs.length === 0 ? (
+        <EmptyState
+          title="No organizations yet"
+          hint="Create one above — you'll automatically become its owner."
+        />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {orgs.map((o) => (
+            <Card
+              key={o.id}
+              className={`p-5 transition ${
+                o.id === orgId
+                  ? "ring-2 ring-indigo-500/60 border-indigo-200"
+                  : "hover:border-slate-300"
+              }`}
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-lg font-bold text-indigo-600">
+                {o.name.slice(0, 1).toUpperCase()}
+              </div>
+              <p className="mt-3 font-medium text-slate-900">{o.name}</p>
+              <div className="mt-2 flex items-center justify-between">
+                <Badge tone="blue" >{o.role}</Badge>
+                {o.id === orgId && <Badge tone="green">current</Badge>}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
