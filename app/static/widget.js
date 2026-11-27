@@ -77,7 +77,7 @@
 
   panel.innerHTML =
     '<div id="jhinku-header" style="padding:14px 16px;color:#fff;' +
-    "background:" + primaryColor + ";font-weight:600;font-size:15px;">Chat</div>" +
+    "background:" + primaryColor + ';font-weight:600;font-size:15px;">Chat</div>' +
     '<div id="jhinku-messages" style="flex:1;overflow-y:auto;padding:12px;' +
     'display:flex;flex-direction:column;gap:8px;background:#f8f9fa;"></div>' +
     '<div id="jhinku-typing" style="display:none;padding:0 16px 4px;' +
@@ -88,7 +88,7 @@
     'autocomplete="off" style="flex:1;border:1px solid #ddd;border-radius:20px;' +
     'padding:9px 14px;font-size:14px;outline:none;">' +
     '<button type="submit" style="border:none;border-radius:20px;padding:9px 16px;' +
-    "color:#fff;background:" + primaryColor + ";font-size:14px;cursor:pointer;">Send</button>" +
+    "color:#fff;background:" + primaryColor + ';font-size:14px;cursor:pointer;">Send</button>' +
     "</form>";
 
   document.body.appendChild(launcher);
