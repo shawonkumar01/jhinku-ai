@@ -13,8 +13,8 @@ from dataclasses import dataclass, field
 from sqlalchemy.orm import Session
 
 from app import models
-from app.ai import embeddings, prompts, retrieval
-from app.core.config import LLM_MODEL, RAG_MAX_DISTANCE
+from app.ai import embeddings, llm, prompts, retrieval
+from app.core.config import RAG_MAX_DISTANCE
 
 logger = logging.getLogger(__name__)
 
@@ -27,22 +27,10 @@ class RagResult:
 
 
 def _generate_answer(messages: list[dict[str, str]]) -> str:
-    """Call the chat LLM. Isolated so it can be mocked in tests."""
+    """Call the chat LLM via the configured provider."""
     if not embeddings.embeddings_available():
-        # Same env flag gates both APIs for now (OPENAI_API_KEY).
-        raise RuntimeError("No LLM API key configured")
-
-    from openai import OpenAI
-
-    from app.core.config import OPENAI_API_KEY
-
-    client = OpenAI(api_key=OPENAI_API_KEY)
-    response = client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=messages,
-        temperature=0.3,
-    )
-    return response.choices[0].message.content or ""
+        raise RuntimeError("No AI API key configured")
+    return llm.generate_answer(messages)
 
 
 def answer_question(
