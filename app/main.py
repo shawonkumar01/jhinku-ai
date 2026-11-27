@@ -2,7 +2,7 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 
-from app.database import engine, get_db
+from app.database import get_db
 from app import models
 from app.auth.dependencies import get_current_user
 from app.auth.router import router as auth_router
@@ -51,26 +51,6 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
-
-
-@app.get("/db-health")
-def database_health():
-    try:
-        from sqlalchemy import text
-
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
-
-        return {
-            "status": "connected",
-            "database": "jhinku_ai_db"
-        }
-
-    except Exception:
-        raise HTTPException(
-            status_code=503,
-            detail="Database connection failed"
-        )
 
 
 # ==========================================
