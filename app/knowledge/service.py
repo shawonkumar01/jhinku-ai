@@ -6,6 +6,7 @@ from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app import models
+from app.ai import embeddings
 from app.core.config import MAX_UPLOAD_SIZE_MB, UPLOAD_DIR
 from app.database import SessionLocal
 from app.knowledge.chunking import chunk_text
@@ -119,6 +120,13 @@ def process_source(
         if not chunks:
             raise ValueError("No text could be extracted from the file")
 
+        # Generate embeddings when an API key is configured. Without
+        # one, chunks are stored unembedded and simply won't match
+        # vector searches until embeddings are backfilled.
+        vectors = None
+        if embeddings.embeddings_available():
+            vectors = embeddings.embed_texts(chunks)
+
         for index, chunk in enumerate(chunks):
             db.add(
                 models.KnowledgeChunk(
@@ -127,6 +135,7 @@ def process_source(
                     knowledge_source_id=source.id,
                     content=chunk,
                     chunk_index=index,
+                    embedding=vectors[index] if vectors else None,
                 )
             )
 

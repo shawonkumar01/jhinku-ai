@@ -1,6 +1,8 @@
 
 import enum
 
+from pgvector.sqlalchemy import Vector
+from app.core.config import EMBEDDING_DIMENSIONS
 from sqlalchemy import (
     Boolean,
     Enum,
@@ -335,6 +337,13 @@ class KnowledgeChunk(Base):
     chunk_index: Mapped[int] = mapped_column(
         Integer,
         nullable=False
+    )
+
+    # Embedding vector for semantic search. Dimension must match
+    # EMBEDDING_DIMENSIONS in config (1536 for text-embedding-3-small).
+    embedding: Mapped[list[float] | None] = mapped_column(
+        Vector(EMBEDDING_DIMENSIONS),
+        nullable=True
     )
 
     created_at: Mapped[DateTime] = mapped_column(
