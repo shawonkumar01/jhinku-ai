@@ -32,6 +32,11 @@ GEMINI_EMBEDDING_MODEL = os.getenv(
     "GEMINI_EMBEDDING_MODEL", "gemini-embedding-001"
 )
 GEMINI_LLM_MODEL = os.getenv("GEMINI_LLM_MODEL", "gemini-3.5-flash")
+# Comma-separated backups tried when the primary model errors (503 etc.)
+GEMINI_LLM_FALLBACK_MODELS = os.getenv(
+    "GEMINI_LLM_FALLBACK_MODELS",
+    "gemini-3.5-flash-lite,gemini-3.1-flash-lite",
+)
 
 EMBEDDING_DIMENSIONS = int(os.getenv("EMBEDDING_DIMENSIONS", "1536"))
 RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))

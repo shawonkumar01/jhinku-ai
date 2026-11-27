@@ -11,6 +11,7 @@ from app.core.config import (
     EMBEDDING_DIMENSIONS,
     GEMINI_API_KEY,
     GEMINI_EMBEDDING_MODEL,
+    GEMINI_LLM_FALLBACK_MODELS,
     GEMINI_LLM_MODEL,
 )
 
@@ -72,12 +73,40 @@ def generate_answer(messages: list[dict[str, str]]) -> str:
                 {"role": role, "parts": [{"text": msg["content"]}]}
             )
 
-    response = client.models.generate_content(
-        model=GEMINI_LLM_MODEL,
-        contents=contents,
-        config={
-            "system_instruction": system_instruction,
-            "temperature": 0.3,
-        },
-    )
-    return response.text or ""
+    # Try the primary model first, then fallbacks — free-tier models
+    # frequently return 503 "high demand" and lite variants are less busy.
+    candidates = [GEMINI_LLM_MODEL] + [
+        m.strip()
+        for m in GEMINI_LLM_FALLBACK_MODELS.split(",")
+        if m.strip() and m.strip() != GEMINI_LLM_MODEL
+    ]
+
+    last_error: Exception | None = None
+    for model in candidates:
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=contents,
+                config={
+                    "system_instruction": system_instruction,
+                    "temperature": 0.3,
+                    # One attempt per model — the SDK's default retry
+                    # backoff (30-60s on 503s) would defeat the
+                    # fallback chain below.
+                    "http_options": {
+                        "retry_options": {"attempts": 1},
+                    },
+                },
+            )
+            if model != GEMINI_LLM_MODEL:
+                logger.warning(
+                    "Primary model %s failed; answered with %s",
+                    GEMINI_LLM_MODEL,
+                    model,
+                )
+            return response.text or ""
+        except Exception as exc:  # 503 high demand, 429, model retired...
+            logger.warning("Gemini model %s failed: %s", model, exc)
+            last_error = exc
+
+    raise last_error or RuntimeError("No Gemini models available")
